@@ -1,0 +1,136 @@
+---
+title: "Knapsack Algorithms: A Comparison"
+author: "Author Name"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{Knapsack Algorithms: A Comparison}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 300
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+This vignette demonstrates the functionality of several knapsack problem-solving algorithms included in the knapsack package. The package provides three different algorithms to solve the knapsack problem:
+
+Dynamic Programming Brute Force (with parallel support) Greedy Algorithm These algorithms are useful for determining the maximum value achievable given a set of items with respective weights and values, and a knapsack with a weight limit.
+
+Knapsack Problem The knapsack problem is a well-known optimization problem. Given a set of items, each with a weight and a value, we want to determine which items to include in the knapsack so that the total weight is less than or equal to a given limit, while maximizing the total value.
+
+In this vignette, we will compare the three approaches implemented in the package.
+
+## Example Dataset
+
+Let's start by creating a simple dataset of items with weights and values.
+
+```{r, include=FALSE}
+RNGversion(min(as.character(getRversion()),"3.5.3"))
+set.seed(42, kind = "Mersenne-Twister", normal.kind = "Inversion")
+n <- 2000
+knapsack_objects <- data.frame(w = sample(1:4000, size = n, replace = TRUE),v=runif(n = n, min = 0,10000))
+W <- 2000
+items <- knapsack_objects[1:23,]
+items
+```
+
+This dataset contains five items with weights and values as shown in the table above.
+
+# Dynamic Programming Solution
+
+The dynamic programming approach solves the knapsack problem efficiently by breaking it down into smaller subproblems. It constructs a table where each entry i, w represents the maximum value achievable with the first i items and a knapsack capacity w.
+
+Let's use the dynamic programming approach to solve the knapsack problem for the example dataset. [**Question : How much time does it takes to run the algorithm for n = 500 objects?** **Answer:It takes 32.16794 secs secs to run the algorithm for n = 500 objects**]{style="color:red"}
+
+```{r, include=FALSE}
+library(parallel)
+library(bigmemory)
+W <- 2000
+items <- knapsack_objects[1:500,]
+result_dynamic <- lab6::knapsack_dynamic(items, W)
+cat("Maximum value using dynamic programming:", result_dynamic, "\n")
+```
+
+# Brute Force Solution
+
+The brute force approach checks all possible combinations of items. This approach becomes computationally expensive as the number of items increases, but guarantees the optimal solution.
+
+```{r, include=FALSE}
+W <- 2000
+items <- knapsack_objects[1:16,]
+result_brute_force <- lab6::brute_force_knapsack(items, W, parallel = FALSE)
+cat("Maximum value using brute force:", result_brute_force, "\n")
+```
+
+# Parallel Brute Force
+
+You can also solve the problem using a parallel brute-force approach, which divides the work across multiple CPU cores. [**Question:How much time does it takes to run the algorithm for n = 16 objects? Answer:It takes 0.08047223 secs to run the algorithm for n = 16 objects if we use single
+thread**]{style="color:red"}
+
+```{r, include=FALSE}
+W <- 2000
+items <- knapsack_objects[1:16,]
+result_brute_force_parallel <- lab6::brute_force_knapsack(items, W, parallel = TRUE)
+cat("Maximum value using parallel brute force:", result_brute_force_parallel, "\n")
+```
+
+Greedy Algorithm The greedy algorithm is a faster but approximate solution. It selects items based on their value-to-weight ratio, ensuring the highest value per unit of weight is chosen first. While this method does not guarantee the optimal solution, it is very efficient. [**Question:How much time
+does it takes to run the algorithm for n = 1000000 objects? Answer:It takes 0.08621979 secs to run the algorithm for n = 1000000 objects**]{style="color:red"}
+
+```{r setup, include=FALSE}
+result_greedy <- lab6::greedy_knapsack(items, W)
+cat("Maximum value using greedy algorithm:", result_greedy, "\n")
+```
+
+Comparison Results of All Algorithms
+
+Finally, let's compare the results from the three algorithms.
+
+# Dynamic Programming
+
+r result_dynamic Brute Force: r result_brute_force Parallel Brute Force: r result_brute_force_parallel Greedy Algorithm: r result_greedy The dynamic programming and brute force methods always find the optimal solution, while the greedy algorithm may find a suboptimal solution depending on the data.
+
+```{r, include=FALSE}
+library(ggplot2)
+library(microbenchmark)
+knapsack_res <-  microbenchmark(
+  non_parallel_res = lab6::brute_force_knapsack(knapsack_objects[1:10,], 2000, parallel = FALSE),
+  parallel_res = lab6::brute_force_knapsack(knapsack_objects[1:10,], 2000, parallel = TRUE),
+  dynamic_res = lab6::knapsack_dynamic(knapsack_objects[1:10,], 2000),
+  times = 10
+)
+autoplot(knapsack_res)
+```
+
+# Performance Considerations
+
+While brute force guarantees an optimal solution, it becomes slow as the number of items increases. The dynamic programming approach is typically faster, and the greedy algorithm is the fastest, but may not always give the best result. [**Question:What performance gain could you get by trying to
+improving your code? Answer:use compiler::cmpfun() to compiler code increasing efficiency of the code especially when using large data set**]{style="color:red"}
+
+```{r, include=FALSE}
+library(compiler)
+library(profvis)
+profvis({
+  Sys.sleep(1)
+  lab6::knapsack_dynamic(knapsack_objects[1:20,], 2000)
+})
+
+fast_knapsack_dynamic <- cmpfun(lab6::knapsack_dynamic)
+profvis({
+  Sys.sleep(1)
+  fast_knapsack_dynamic(lab6::knapsack_objects[1:20,], 2000)
+})
+```
+
+# Conclusion 
+The knapsack package provides different strategies to solve the knapsack problem. The choice of algorithm depends on the size of the problem and the desired balance between speed and optimality. For small datasets, brute force and dynamic programming will give optimal results, while for
+larger datasets or quick approximations, the greedy algorithm is a better choice.
